@@ -1,0 +1,10 @@
+{
+  "formula": "x * y + z",
+  "variables": {
+    "x": {"dist": "uniform", "params": {"low": 1, "high": 10}},
+    "y": {"dist": "normal", "params": {"mu": 5, "sigma": 2}},
+    "z": {"dist": "uniform", "params": {"low": 0, "high": 1}}
+  },
+  "num_simulaciones": 1000
+}
+
