@@ -17,6 +17,8 @@ ESCENARIOS_ROUTING_KEY = 'escenario.nuevo' # Necesario si el consumidor también
 RESULTADOS_QUEUE_NAME = 'resultados_queue'
 RESULTADOS_ROUTING_KEY = 'resultado.procesado' # Nueva routing key para resultados
 
+DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el visualizador
+
 with open("model_settings.json", "r") as f:
     model_settings = json.load(f)
     formula_modelo = model_settings["formula"]
@@ -54,6 +56,14 @@ def callback_consumidor(ch, method, properties, body):
             )
         )
         print(f" [C:{pid}] Resultado para Escenario ID: {id_escenario} publicado en '{RESULTADOS_QUEUE_NAME}'.")
+        
+        # Publicar el resultado en el exchange del dashboard
+        ch.basic_publish(
+            exchange=DASHBOARD_EXCHANGE,
+            routing_key='',  # fanout no usa routing key
+            body=json.dumps(mensaje_resultado)
+        )
+        print(f" [C:{pid}] Resultado reenviado a '{DASHBOARD_EXCHANGE}' para dashboard.")
 
         # Enviar ACK para el mensaje de escenario original
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -84,6 +94,7 @@ def iniciar_consumidor():
 
         # 2. Declarar el exchange (idempotente, debe coincidir con el productor)
         channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
+        channel.exchange_declare(exchange=DASHBOARD_EXCHANGE, exchange_type='fanout', durable=True) #Exchange para el visualizador
 
         # 3. Declarar y vincular la cola de escenarios
         channel.queue_declare(queue=ESCENARIOS_QUEUE_NAME, durable=True)

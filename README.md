@@ -7,7 +7,7 @@ Repositorio para el proyecto de Cómputo Distribuido
 Primero se instalan las dependencias del proyecto mediante el comando:
 
 ```bash
-pip install -r requeriments.txt
+pip install -r requirements.txt
 ```
 
 ## Activar servicio RabbitMQ
