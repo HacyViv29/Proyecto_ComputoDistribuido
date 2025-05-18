@@ -124,20 +124,29 @@ def actualizar_dashboard(n_intervals, n_clicks):
         resultados.clear()
 
     num = len(resultados) # Número de simulaciones
-    formula = resultados[0].get("formula", "Fórmula no encontrada") # Se obtiene la fórmula del primer resultado
-    
+    formula_actual_display = "Esperando datos..." # Placeholder
     # Si no hay resultados, se muestra un mensaje de "N/A"
     if num == 0:
         return (
             f"🧮 Número de simulaciones: {num}",
             "📈 Promedio de las simulaciones: N/A",
             {}, # Gráfico vacío 
-            f"🧪 Fórmula actual: {formula}"
+            f"🧪 Fórmula actual: {formula_actual_display}"
         )
 
+    # Se obtiene la fórmula del primer resultado
+    formula = resultados[0].get("formula", "Fórmula no encontrada") # Se obtiene la fórmula del primer resultado
     # Si hay resultados, se calcula el promedio y se genera el gráfico
     # Se extraen los valores calculados de los resultados
     valores = [r["valor_calculado"] for r in resultados]
+
+    if not valores: # Si no hay 'valor_calculado' en ningún resultado
+        return (
+            f"🧮 Número de simulaciones: {num} (0 con 'valor_calculado')",
+            "📈 Promedio de las simulaciones: N/A",
+            {},
+            f"🧪 Fórmula actual: {formula_actual_display}"
+        )
 
     # Se calcula el promedio de los resultados
     promedio = sum(valores) / num
