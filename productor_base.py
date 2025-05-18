@@ -1,10 +1,13 @@
 ''''
-Este script es un productor de escenarios de montecarlo que envía un mensaje de resultados a RabbitMQ.
-
-Productor de Escenarios de Simulación
-------------------------------------------------
-    * Responsable de generar escenarios de simulación y enviarlos a RabbitMQ.
-    * Un escenario consiste en un conjunto de valores para las variables aleatorias del modelo de Monte Carlo.
+    Productor de Escenarios de Simulación
+    
+    Este script es un productor de escenarios de montecarlo que envía un mensaje de resultados a RabbitMQ.
+    ------------------------------------------------
+        * Responsable de generar escenarios de simulación y enviarlos a RabbitMQ.
+        * Un escenario consiste en un conjunto de valores para las variables aleatorias del modelo de Monte Carlo.
+        * Utiliza un exchange directo para enviar mensajes a una cola específica.
+        * Los mensajes son persistentes, lo que significa que sobrevivirán a reinicios del broker RabbitMQ.
+    ------------------------------------------------
 '''
 
 import pika
@@ -17,17 +20,29 @@ import uuid # Para generar IDs únicos para los escenarios
 # Constantes para RabbitMQ
 RABBITMQ_HOST = 'localhost'
 EXCHANGE_NAME = 'simulacion_exchange' # Único exchange para la simulación
-
 ESCENARIOS_QUEUE_NAME = 'escenarios_queue'
 ESCENARIOS_ROUTING_KEY = 'escenario.nuevo' # Routing key para el exchange directo
 
-# Cargar la configuración del modelo desde un archivo JSON
-# Este archivo debe contener la definición de las variables y sus distribuciones.
-with open("model_settings.json", "r") as f:
-    # Cargar la configuración del modelo desde un archivo JSON
-    model_settings = json.load(f)
+# Configuración del modelo
+MODEL = 'model_settings_flyweight.json' # Archivo de configuración del modelo
 
-def iniciar_productor(num_mensajes=10):
+# Cargar la configuración del modelo desde un archivo JSON
+# Este archivo contiene la definición de las variables y sus distribuciones.
+try:
+    with open(MODEL, "r") as f:
+        model_settings = json.load(f)
+except FileNotFoundError:
+    print("Error: El archivo 'model_settings.json' no fue encontrado. Usando configuración por defecto.")
+    # Configuración por defecto para evitar que el script falle si no existe el archivo
+    model_settings = {
+        "formula": "x + y",
+        "variables": {
+            "x": {"dist": "uniform", "params": {"low": 0, "high": 1}},
+            "y": {"dist": "uniform", "params": {"low": 0, "high": 1}}
+        }
+    }
+
+def iniciar_productor(num_mensajes=100):
     """
     Establece conexión con RabbitMQ, declara un exchange y una cola durable,
     y envía una cantidad especificada de mensajes persistentes.
@@ -44,7 +59,6 @@ def iniciar_productor(num_mensajes=10):
 
         # 3. Declarar una cola durable
         # durable=True asegura que la cola sobreviva a reinicios del broker RabbitMQ.
-        # Es buena práctica declararla tanto en el productor como en el consumidor.
         channel.queue_declare(queue=ESCENARIOS_QUEUE_NAME, durable=True)
 
         # 4. Vincular la cola al exchange con la routing key
@@ -52,10 +66,10 @@ def iniciar_productor(num_mensajes=10):
 
         print(f"[*] Productor conectado y listo para enviar a la cola '{ESCENARIOS_QUEUE_NAME}' vía exchange '{EXCHANGE_NAME}'.")
 
-        # 5. Enviar múltiples mensajes
+        # 5. Enviar múltiples escenarios
+        # Generar y enviar un número específico de escenarios 
         for i in range(num_mensajes):
             id_escenario = str(uuid.uuid4()) # Generar un ID único para el escenario
-            #message_body = f"Mensaje de prueba número {i+1}"
 
             datos_escenario = generar_escenario(model_settings)
             
@@ -101,9 +115,6 @@ if __name__ == '__main__':
         try:
             n_msgs = int(sys.argv[1])
         except ValueError:
-            print("Argumento inválido. Usando 5 mensajes por defecto.")
-            n_msgs = 5
-    else:
-        n_msgs = 5
+            print("[-] Argumento inválido. Usando n mensajes por defecto.")
 
     iniciar_productor(n_msgs)

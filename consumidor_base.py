@@ -1,3 +1,15 @@
+''''
+    Consumidor de Escenarios de Simulación
+    
+    Este script es un consumidor de escenarios de simulación que recibe mensajes de RabbitMQ y publica resultados.
+    ------------------------------------------------
+        * Responsable de recibir escenarios de simulación y calcular resultados.
+        * Utiliza un exchange directo para recibir mensajes de una cola específica.
+        * Publica resultados en el mismo exchange pero con una routing key diferente.
+        * También publica resultados en un exchange fanout para el visualizador.
+    ------------------------------------------------
+'''
+
 import pika
 import time
 import os # Para obtener el PID
@@ -17,9 +29,12 @@ ESCENARIOS_ROUTING_KEY = 'escenario.nuevo' # Necesario si el consumidor también
 RESULTADOS_QUEUE_NAME = 'resultados_queue'
 RESULTADOS_ROUTING_KEY = 'resultado.procesado' # Nueva routing key para resultados
 
+# Exhange fanout sin routing key
 DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el visualizador
 
-with open("model_settings.json", "r") as f:
+MODEL = 'model_settings_flyweight.json' # Archivo de configuración del modelo
+
+with open(MODEL, "r") as f:
     model_settings = json.load(f)
     formula_modelo = model_settings["formula"]
 
@@ -51,9 +66,9 @@ def callback_consumidor(ch, method, properties, body):
             exchange=EXCHANGE_NAME,
             routing_key=RESULTADOS_ROUTING_KEY,
             body=json.dumps(mensaje_resultado),
-            properties=pika.BasicProperties(
-                delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE # Si resultados_queue es durable
-            )
+            # properties=pika.BasicProperties(
+            #     delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE # Si resultados_queue es durable
+            # )
         )
         print(f" [C:{pid}] Resultado para Escenario ID: {id_escenario} publicado en '{RESULTADOS_QUEUE_NAME}'.")
         
@@ -92,7 +107,7 @@ def iniciar_consumidor():
         connection = pika.BlockingConnection(connection_parameters)
         channel = connection.channel()
 
-        # 2. Declarar el exchange (idempotente, debe coincidir con el productor)
+        # 2. Declarar el exchange (idempotente, debe coincidir con el productor) principal y para el visualizador
         channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
         channel.exchange_declare(exchange=DASHBOARD_EXCHANGE, exchange_type='fanout', durable=True) #Exchange para el visualizador
 
