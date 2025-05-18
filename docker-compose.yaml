@@ -1,19 +1,15 @@
-version: "3.5"
-
+# Docker Compose file for RabbitMQ with management plugin
 # Docker services
 services:
 
     rabbitmq:
-        image: rabbitmq:3.8.9-management
+        image: rabbitmq:4.1.0-management
         container_name: rabbitmq
         restart: always
         tty: true
         stdin_open: true
         volumes:
             - ./enable_plugins:/etc/rabbitmq/enabled_plugins:ro
-            # More plugins on:
-            # https://www.rabbitmq.com/plugins.html
-            # https://www.rabbitmq.com/community-plugins.html
         ports:
             # HTTP DASHBOARD FOR MANAGEMENT
             - "15672:15672"

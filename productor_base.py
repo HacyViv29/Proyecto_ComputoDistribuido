@@ -16,6 +16,7 @@ import json
 import sys
 from utils import generar_escenario
 import uuid # Para generar IDs únicos para los escenarios
+import os
 
 # Constantes para RabbitMQ
 RABBITMQ_HOST = 'localhost'
@@ -24,17 +25,30 @@ ESCENARIOS_QUEUE_NAME = 'escenarios_queue'
 ESCENARIOS_ROUTING_KEY = 'escenario.nuevo' # Routing key para el exchange directo
 
 # Configuración del modelo
-MODEL = 'model_settings_flyweight.json' # Archivo de configuración del modelo
+#directorio_modelos = "./models"
+#MODEL_SETTINGS_FILE = os.path.join(directorio_modelos, 'model_settings_flyweight.json') # Archivo de configuración del modelo
+#MODEL_SETTINGS_FILE = 'model_settings_flyweight.json' # Archivo de configuración del modelo
+
 
 # Cargar la configuración del modelo desde un archivo JSON
 # Este archivo contiene la definición de las variables y sus distribuciones.
-try:
-    with open(MODEL, "r") as f:
-        model_settings = json.load(f)
-except FileNotFoundError:
-    print("Error: El archivo 'model_settings.json' no fue encontrado. Usando configuración por defecto.")
-    # Configuración por defecto para evitar que el script falle si no existe el archivo
-    model_settings = {
+# try:
+#     with open(MODEL_SETTINGS_FILE, "r") as f:
+#         model_settings = json.load(f)
+# except FileNotFoundError:
+#     print("Error: El archivo 'model_settings.json' no fue encontrado. Usando configuración por defecto.")
+#     # Configuración por defecto para evitar que el script falle si no existe el archivo
+#     model_settings = {
+#         "formula": "x + y",
+#         "variables": {
+#             "x": {"dist": "uniform", "params": {"low": 0, "high": 1}},
+#             "y": {"dist": "uniform", "params": {"low": 0, "high": 1}}
+#         }
+#     }
+
+def seleccionar_modelo(directorio_modelos="./models"):
+
+    model_settings_base = {
         "formula": "x + y",
         "variables": {
             "x": {"dist": "uniform", "params": {"low": 0, "high": 1}},
@@ -42,7 +56,46 @@ except FileNotFoundError:
         }
     }
 
-def iniciar_productor(num_mensajes=100):
+    try:
+        archivos_modelo = [f for f in os.listdir(directorio_modelos) if f.endswith('.json')]
+    except FileNotFoundError:
+        print(f"Error: El directorio de modelos '{directorio_modelos}' no existe. Usando configuración por defecto.")
+        return model_settings_base
+
+    if not archivos_modelo:
+        print(f"No se encontraron archivos de modelo JSON en '{directorio_modelos}'. Usando configuración por defecto.")
+        return model_settings_base
+
+    print("\nModelos disponibles:")
+    for i, nombre_archivo in enumerate(archivos_modelo):
+        print(f"{i+1}. {nombre_archivo}")
+
+    while True:
+        try:
+            seleccion = int(input("Seleccione el número del modelo a utilizar: "))
+            if 1 <= seleccion <= len(archivos_modelo):
+
+                # Cargar la configuración del modelo seleccionado
+                archivo_modelo_seleccionado = os.path.join(directorio_modelos, archivos_modelo[seleccion-1])
+
+                try:
+                    with open(archivo_modelo_seleccionado, "r") as f:
+                        model_settings = json.load(f)
+                except FileNotFoundError:
+                    print(f"Error: El archivo '{archivo_modelo_seleccionado}' no fue encontrado, usando configuración por defecto.")
+                    return model_settings_base
+                except json.JSONDecodeError:
+                    print(f"Error: El archivo '{archivo_modelo_seleccionado}' no es un JSON válido.")
+                    return model_settings_base
+                
+                return model_settings
+                #return os.path.join(directorio_modelos, archivos_modelo[seleccion-1])
+            else:
+                print("Selección inválida.")
+        except ValueError:
+            print("Por favor, ingrese un número.")
+
+def iniciar_productor(num_mensajes=100, model_settings=None):
     """
     Establece conexión con RabbitMQ, declara un exchange y una cola durable,
     y envía una cantidad especificada de mensajes persistentes.
@@ -75,6 +128,8 @@ def iniciar_productor(num_mensajes=100):
             
             mensaje_escenario = {
                 "id_escenario": id_escenario,
+                "nombre_modelo": model_settings.get("model_name", "modelo_default"), # Nombre del modelo
+                "formula": model_settings["formula"], # Incluir la fórmula en el mensaje
                 "datos_variables": datos_escenario
             }
 
@@ -107,8 +162,8 @@ def iniciar_productor(num_mensajes=100):
 
 if __name__ == '__main__':
     # Esperar un momento para asegurar que RabbitMQ esté completamente iniciado
-    print("[-] Productor esperando 5 segundos para que RabbitMQ inicie...")
-    time.sleep(5)
+    print("[-] Productor esperando 3 segundos para que RabbitMQ inicie...")
+    time.sleep(3)
 
     # Permitir especificar el número de mensajes desde la línea de comandos
     if len(sys.argv) > 1:
@@ -117,4 +172,10 @@ if __name__ == '__main__':
         except ValueError:
             print("[-] Argumento inválido. Usando n mensajes por defecto.")
 
-    iniciar_productor(n_msgs)
+    modelo_seleccionado = seleccionar_modelo()
+    #print(f"[-] Archivo de modelo seleccionado: {modelo_seleccionado}")
+    if modelo_seleccionado:
+        iniciar_productor(n_msgs, modelo_seleccionado)
+    else:
+        print("No se seleccionó ningún modelo. Saliendo.")
+    #iniciar_productor(n_msgs)

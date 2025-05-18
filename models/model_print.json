@@ -1,4 +1,5 @@
 {
+  "model_name": "print_model",
   "formula": "(pv * x) - (ca + cb + (c1 * x) + (c2 * x))",
   "variables": {
     "pv": {"dist": "fixed", "params": {"value": 70000}},

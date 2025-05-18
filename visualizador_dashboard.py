@@ -1,10 +1,11 @@
 ''''
-Este script es un visualizador de resultados de las simulaciones de montecarlo en un Dashboard.
+    Visualizador de Resultados de Simulación
+    Este script es un visualizador de resultados de las simulaciones de montecarlo en un Dashboard.
 
-Visualizador de Resultados de Simulación
-------------------------------------------------
-    * Responsable de generar un Dashboard donde se aprecie los resultados de las simulaciones.
-    * Enseña el número de simulaciones realizadas, el promedio de los resultados y un histograma de los resultados.
+    ------------------------------------------------
+        * Responsable de generar un Dashboard donde se aprecie los resultados de las simulaciones.
+        * Enseña el número de simulaciones realizadas, el promedio de los resultados y un histograma de los resultados.
+    ------------------------------------------------
 '''
 
 #Importaci[on de librerias necesarias
@@ -23,7 +24,7 @@ import os
 #Parámetros de configuración
 RABBITMQ_HOST = 'localhost' # Host de RabbitMQ
 DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el dashboard
-MODEL_SETTINGS_FILE = 'model_settings.json' # Archivo de configuración del modelo
+#MODEL_SETTINGS_FILE = 'model_settings_flyweight.json' # Archivo de configuración del modelo
 
 #Inicializar la app Dash
 app = dash.Dash(__name__)
@@ -51,16 +52,17 @@ app.layout = html.Div([
 
 # Lista para almacenar los resultados de las simulaciones
 resultados = []
+formula = ""
 
 # Función para cargar la fórmula del modelo desde un archivo JSON
 # Se espera que el archivo contenga una clave "formula" con la fórmula a utilizar
-def cargar_formula():
-    try:
-        with open(MODEL_SETTINGS_FILE, 'r') as f:
-            settings = json.load(f)
-        return settings.get("formula", "Fórmula no encontrada") # Devuelve la fórmula del modelo
-    except Exception:
-        return "Error cargando fórmula"
+# def cargar_formula():
+#     try:
+#         with open(MODEL_SETTINGS_FILE, 'r') as f:
+#             settings = json.load(f)
+#         return settings.get("formula", "Fórmula no encontrada") # Devuelve la fórmula del modelo
+#     except Exception:
+#         return "Error cargando fórmula"
 
 # Función para consumir mensajes de RabbitMQ
 # Se conecta a RabbitMQ y escucha el exchange de dashboard en segundo plano
@@ -122,6 +124,7 @@ def actualizar_dashboard(n_intervals, n_clicks):
         resultados.clear()
 
     num = len(resultados) # Número de simulaciones
+    formula = resultados[0].get("formula", "Fórmula no encontrada") # Se obtiene la fórmula del primer resultado
     
     # Si no hay resultados, se muestra un mensaje de "N/A"
     if num == 0:
@@ -129,13 +132,13 @@ def actualizar_dashboard(n_intervals, n_clicks):
             f"🧮 Número de simulaciones: {num}",
             "📈 Promedio de las simulaciones: N/A",
             {}, # Gráfico vacío 
-            f"🧪 Fórmula actual: {cargar_formula()}"
+            f"🧪 Fórmula actual: {formula}"
         )
 
     # Si hay resultados, se calcula el promedio y se genera el gráfico
     # Se extraen los valores calculados de los resultados
     valores = [r["valor_calculado"] for r in resultados]
-    
+
     # Se calcula el promedio de los resultados
     promedio = sum(valores) / num
     
@@ -149,7 +152,7 @@ def actualizar_dashboard(n_intervals, n_clicks):
         f"🧮 Número de simulaciones: {num}",
         f"📈 Promedio de las simulaciones: {promedio:.4f}",
         fig,
-        f"🧪 Fórmula actual: {cargar_formula()}"
+        f"🧪 Fórmula actual: {formula}"
     )
 
 if __name__ == "__main__":

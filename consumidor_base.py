@@ -32,19 +32,19 @@ RESULTADOS_ROUTING_KEY = 'resultado.procesado' # Nueva routing key para resultad
 # Exhange fanout sin routing key
 DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el visualizador
 
-MODEL = 'model_settings_flyweight.json' # Archivo de configuración del modelo
+MODEL_SETTINGS_FILE = 'model_settings_flyweight.json' # Archivo de configuración del modelo
 
 # Cargar la configuración del modelo para obtener la fórmula
-try:
-    with open(MODEL, "r") as f:
-        model_settings = json.load(f)
-    formula_modelo = model_settings["formula"]
-except FileNotFoundError:
-    print("Error: El archivo 'model_settings.json' no fue encontrado. Usando fórmula por defecto 'x+y+z'.")
-    formula_modelo = "x + y + z" # Fórmula por defecto
-except KeyError:
-    print("Error: 'formula' no encontrada en 'model_settings.json'. Usando fórmula por defecto 'x+y+z'.")
-    formula_modelo = "x + y + z"
+# try:
+#     with open(MODEL_SETTINGS_FILE, "r") as f:
+#         model_settings = json.load(f)
+#     formula_modelo = model_settings["formula"]
+# except FileNotFoundError:
+#     print("Error: El archivo 'model_settings.json' no fue encontrado. Usando fórmula por defecto 'x+y+z'.")
+#     formula_modelo = "x + y + z" # Fórmula por defecto
+# except KeyError:
+#     print("Error: 'formula' no encontrada en 'model_settings.json'. Usando fórmula por defecto 'x+y+z'.")
+#     formula_modelo = "x + y + z"
 
 def callback_consumidor(ch, method, properties, body):
     """
@@ -55,6 +55,7 @@ def callback_consumidor(ch, method, properties, body):
         escenario_recibido = json.loads(body.decode())
         id_escenario = escenario_recibido.get("id_escenario", "ID_DESCONOCIDO")
         datos_variables = escenario_recibido.get("datos_variables", {})
+        formula_modelo = escenario_recibido.get("formula", "x * y + z") # Fórmula por defecto
 
         print(f" [C:{pid}] Recibido Escenario ID: {id_escenario} | Datos: {datos_variables}")
 
@@ -66,6 +67,7 @@ def callback_consumidor(ch, method, properties, body):
         # Preparar mensaje de resultado
         mensaje_resultado = {
             "id_escenario": id_escenario,
+            "formula": formula_modelo,
             "valor_calculado": resultado_calculado
         }
 

@@ -1,4 +1,5 @@
 {
+  "model_name": "example_model",
   "formula": "x * y + z",
   "variables": {
     "x": {"dist": "uniform", "params": {"low": 1, "high": 10}},
