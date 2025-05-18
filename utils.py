@@ -16,5 +16,3 @@ def generar_escenario(config):
 
 def evaluar_formula(formula, variables):
     return eval(formula, {}, variables)
-
-
