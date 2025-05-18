@@ -34,9 +34,17 @@ DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el visualizador
 
 MODEL = 'model_settings_flyweight.json' # Archivo de configuración del modelo
 
-with open(MODEL, "r") as f:
-    model_settings = json.load(f)
+# Cargar la configuración del modelo para obtener la fórmula
+try:
+    with open(MODEL, "r") as f:
+        model_settings = json.load(f)
     formula_modelo = model_settings["formula"]
+except FileNotFoundError:
+    print("Error: El archivo 'model_settings.json' no fue encontrado. Usando fórmula por defecto 'x+y+z'.")
+    formula_modelo = "x + y + z" # Fórmula por defecto
+except KeyError:
+    print("Error: 'formula' no encontrada en 'model_settings.json'. Usando fórmula por defecto 'x+y+z'.")
+    formula_modelo = "x + y + z"
 
 def callback_consumidor(ch, method, properties, body):
     """
