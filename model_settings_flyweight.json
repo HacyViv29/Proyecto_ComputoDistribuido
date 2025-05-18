@@ -1,0 +1,20 @@
+{
+  "formula": "(pv * x) - (ca + cb + (c1 * x) + (c2 * x))",
+  "variables": {
+    "pv": {"dist": "fixed", "params": {"value": 70000}},
+    "ca": {"dist": "fixed", "params": {"value": 160000000}},
+    "cb": {"dist": "fixed", "params": {"value": 80000000}},
+    "c1": {
+      "dist": "discrete",
+      "params": {
+        "values": [10000, 13000, 16000, 19000, 22000],
+        "probs": [0.1, 0.3, 0.3, 0.2, 0.1]
+      }
+    },
+    "c2": {"dist": "uniform", "params": {"low": 30000, "high": 30000}},
+    "x": {
+      "dist": "trunc_normal", 
+      "params": {"mu": 14500, "sigma": 4000, "min": 0}
+    }
+  }
+}
