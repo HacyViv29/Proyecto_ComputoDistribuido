@@ -20,6 +20,8 @@ import pandas as pd
 import webbrowser
 from threading import Timer
 import os
+import numpy as np
+from scipy.stats import kurtosis, skew
 
 #Parámetros de configuración
 RABBITMQ_HOST = 'localhost' # Host de RabbitMQ
@@ -35,9 +37,26 @@ app.layout = html.Div([
     html.H1("📊 Dashboard de Simulaciones en Tiempo Real 🧮"), # Titulo
     
     # Estadisticas generales
-    html.Div(id="numero-simulaciones", style={"fontSize": 24, "margin": "10px"}),
-    html.Div(id="promedio-simulaciones", style={"fontSize": 24, "margin": "10px"}),
     html.Div(id="fórmula", style={"fontSize": 20, "margin": "10px", "fontStyle": "italic"}),
+    
+    # Sección creada para darle un mejor diseño a las estadísticas 
+    html.Div([
+        html.Div(id="numero-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="promedio-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="mediana-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="desviacion-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="minimo-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="maximo-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="percentiles-simulaciones", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="varianza", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="asimetria", style={"fontSize": 24, "margin": "10px"}),
+        html.Div(id="curtosis", style={"fontSize": 24, "margin": "10px"}),
+    ], style={
+        "display": "grid",
+        "gridTemplateColumns": "repeat(3, 1fr)",
+        "gap": "10px 20px", # Espacio entre columnas y filas
+        "margin": "10px",
+    }),
     
     # Histograma de resultados
     dcc.Graph(id="histograma"),
@@ -101,6 +120,14 @@ threading.Thread(target=consumidor, daemon=True).start()
 @app.callback(
     [Output("numero-simulaciones", "children"), # Número de simulaciones
      Output("promedio-simulaciones", "children"), # Promedio de las simulaciones
+     Output("mediana-simulaciones", "children"), # Mediana de las simulaciones
+     Output("desviacion-simulaciones", "children"), # Desviación estándar de las simulaciones
+     Output("minimo-simulaciones", "children"), # Minimo de las simulaciones
+     Output("maximo-simulaciones", "children"), # Máximo de las simulaciones
+     Output("percentiles-simulaciones", "children"), # Percentiles de las simulaciones
+     Output("varianza", "children"), # Varianza de las simulaciones
+     Output("asimetria", "children"), # Asimetría de las simulaciones
+     Output("curtosis", "children"), # Curtosis de las simulaciones
      Output("histograma", "figure"), # Gráfico de histogramas
      Output("fórmula", "children")], # Fórmula del modelo
     [Input("intervalo-actualizacion", "n_intervals"), # Intervalo de actualización
@@ -130,6 +157,14 @@ def actualizar_dashboard(n_intervals, n_clicks):
         return (
             f"🧮 Número de simulaciones: {num}",
             "📈 Promedio de las simulaciones: N/A",
+            "📊 Mediana: N/A",
+            "📉 Desviación estándar: N/A",
+            "🔽 Mínimo: N/A",
+            "🔼 Máximo: N/A",
+            "📐 Percentiles (25-50-75): N/A",
+            "🧾 Varianza: 0.0000",
+            "↩️ Asimetría: 0.0000",
+            "🎯 Curtosis: 0.0000",
             {}, # Gráfico vacío 
             f"🧪 Fórmula actual: {formula_actual_display}"
         )
@@ -139,27 +174,51 @@ def actualizar_dashboard(n_intervals, n_clicks):
     # Si hay resultados, se calcula el promedio y se genera el gráfico
     # Se extraen los valores calculados de los resultados
     valores = [r["valor_calculado"] for r in resultados]
+    df = pd.DataFrame(valores, columns=["Valores"]) # Se crea un DataFrame con los valores calculados
 
     if not valores: # Si no hay 'valor_calculado' en ningún resultado
         return (
             f"🧮 Número de simulaciones: {num} (0 con 'valor_calculado')",
             "📈 Promedio de las simulaciones: N/A",
+            "📊 Mediana: N/A",
+            "📉 Desviación estándar: N/A",
+            "🔽 Mínimo: N/A",
+            "🔼 Máximo: N/A",
+            "📐 Percentiles (25-50-75): N/A",
+            "🧾 Varianza: 0.0000",
+            "↩️ Asimetría: 0.0000",
+            "🎯 Curtosis: 0.0000",
             {},
             f"🧪 Fórmula actual: {formula_actual_display}"
         )
 
-    # Se calcula el promedio de los resultados
-    promedio = sum(valores) / num
+    # Se calculan las estadísticas
+    promedio = df["Valores"].mean() # Promedio de los resultados
+    mediana = df["Valores"].median() # Mediana de los resultados
+    desviacion = df["Valores"].std() # Desviación estándar de los resultados
+    minimo = df["Valores"].min() # Mínimo de los resultados
+    maximo = df["Valores"].max() # Máximo de los resultados
+    percentiles = df["Valores"].quantile([0.25, 0.5, 0.75]).to_dict() # Percentiles 25, 50 y 75 de los resultados
+    varianza = df["Valores"].var() # Varianza de los resultados
+    asimetria = skew(valores) # Asimetría de los resultados
+    curtosis = kurtosis(valores) # Curtosis de los resultados
     
     # Se genera el gráfico de histogramas
     # Se utiliza Plotly Express para generar el gráfico de histogramas
-    df = pd.DataFrame(valores, columns=["Valores"]) # Se crea un DataFrame de pandas para almacenar los resultados
     fig = px.histogram(df, x="Valores", nbins=20, title="Histograma de Resultados")
 
     # Se devuelve el número de simulaciones, el promedio, el gráfico y la fórmula
     return (
         f"🧮 Número de simulaciones: {num}",
         f"📈 Promedio de las simulaciones: {promedio:.4f}",
+        f"📊 Mediana: {mediana:.4f}",
+        f"📉 Desviación estándar: {desviacion:.4f}",
+        f"🔽 Mínimo: {minimo:.4f}",
+        f"🔼 Máximo: {maximo:.4f}",
+        f"📐 Percentiles (25-50-75): {percentiles[0.25]:.4f}, {percentiles[0.5]:.4f}, {percentiles[0.75]:.4f}",
+        f"🧾 Varianza: {varianza:.4f}",
+        f"↩️ Asimetría: {asimetria:.4f}",
+        f"🎯 Curtosis: {curtosis:.4f}",
         fig,
         f"🧪 Fórmula actual: {formula}"
     )
