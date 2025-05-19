@@ -2,9 +2,15 @@ import numpy as np
 
 def generar_valor(dist, params):
     if dist == "uniform":
-        return np.random.uniform(params["low"], params["high"])
+        return float(np.random.uniform(params["low"], params["high"]))
     elif dist == "normal":
-        return np.random.normal(params["mu"], params["sigma"])
+        return float(np.random.normal(params["mu"], params["sigma"]))
+    elif dist == "fixed":
+        return float(params["value"]) if isinstance(params["value"], (int, float)) else params["value"]
+    elif dist == "discrete":
+        return float(np.random.choice(params["values"], p=params["probs"]))
+    elif dist == "trunc_normal":
+        return float(max(params.get("min", 0), np.random.normal(params["mu"], params["sigma"])))  # Paréntesis corregido aquí
     else:
         raise ValueError(f"Distribución '{dist}' no soportada.")
 
@@ -16,5 +22,3 @@ def generar_escenario(config):
 
 def evaluar_formula(formula, variables):
     return eval(formula, {}, variables)
-
-
