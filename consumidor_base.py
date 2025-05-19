@@ -34,18 +34,7 @@ DASHBOARD_EXCHANGE = 'dashboard_exchange' # Exchange para el visualizador
 
 MODEL_SETTINGS_FILE = 'model_settings_flyweight.json' # Archivo de configuración del modelo
 
-# Cargar la configuración del modelo para obtener la fórmula
-# try:
-#     with open(MODEL_SETTINGS_FILE, "r") as f:
-#         model_settings = json.load(f)
-#     formula_modelo = model_settings["formula"]
-# except FileNotFoundError:
-#     print("Error: El archivo 'model_settings.json' no fue encontrado. Usando fórmula por defecto 'x+y+z'.")
-#     formula_modelo = "x + y + z" # Fórmula por defecto
-# except KeyError:
-#     print("Error: 'formula' no encontrada en 'model_settings.json'. Usando fórmula por defecto 'x+y+z'.")
-#     formula_modelo = "x + y + z"
-
+# función callback para el consumidor
 def callback_consumidor(ch, method, properties, body):
     """
     Procesa un escenario recibido, calcula el resultado y lo publica.
@@ -113,6 +102,7 @@ def iniciar_consumidor():
     connection = None
     try:
         # 1. Establecer conexión con RabbitMQ
+        credentials = pika.PlainCredentials('guest', 'guest')
         connection_parameters = pika.ConnectionParameters(RABBITMQ_HOST)
         connection = pika.BlockingConnection(connection_parameters)
         channel = connection.channel()
