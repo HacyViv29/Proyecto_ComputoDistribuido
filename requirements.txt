@@ -4,3 +4,5 @@ matplotlib
 dash
 pandas
 plotly
+scipy
+dash-bootstrap-components

@@ -23,4 +23,4 @@ Se le realiza las modificaciones al JSON dependiendo de la función y variables 
 Para realizar una correcta ejecución, se requiere ejecutar los archivos en el siguiente orden:
 - consumidor.py
 - productor.py
-- visualizador.py
+- visualizador_dashboard.py

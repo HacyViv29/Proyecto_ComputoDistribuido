@@ -24,28 +24,7 @@ EXCHANGE_NAME = 'simulacion_exchange' # Único exchange para la simulación
 ESCENARIOS_QUEUE_NAME = 'escenarios_queue'
 ESCENARIOS_ROUTING_KEY = 'escenario.nuevo' # Routing key para el exchange directo
 
-# Configuración del modelo
-#directorio_modelos = "./models"
-#MODEL_SETTINGS_FILE = os.path.join(directorio_modelos, 'model_settings_flyweight.json') # Archivo de configuración del modelo
-#MODEL_SETTINGS_FILE = 'model_settings_flyweight.json' # Archivo de configuración del modelo
-
-
-# Cargar la configuración del modelo desde un archivo JSON
-# Este archivo contiene la definición de las variables y sus distribuciones.
-# try:
-#     with open(MODEL_SETTINGS_FILE, "r") as f:
-#         model_settings = json.load(f)
-# except FileNotFoundError:
-#     print("Error: El archivo 'model_settings.json' no fue encontrado. Usando configuración por defecto.")
-#     # Configuración por defecto para evitar que el script falle si no existe el archivo
-#     model_settings = {
-#         "formula": "x + y",
-#         "variables": {
-#             "x": {"dist": "uniform", "params": {"low": 0, "high": 1}},
-#             "y": {"dist": "uniform", "params": {"low": 0, "high": 1}}
-#         }
-#     }
-
+# función para cargar la configuración del modelo
 def seleccionar_modelo(directorio_modelos="./models"):
 
     model_settings_base = {
@@ -95,14 +74,15 @@ def seleccionar_modelo(directorio_modelos="./models"):
         except ValueError:
             print("Por favor, ingrese un número.")
 
-def iniciar_productor(num_mensajes=100, model_settings=None):
+def iniciar_productor(num_mensajes, model_settings=None):
     """
     Establece conexión con RabbitMQ, declara un exchange y una cola durable,
     y envía una cantidad especificada de mensajes persistentes.
     """
     try:
         #1. Establecer conexión con RabbitMQ
-        connection_parameters = pika.ConnectionParameters(RABBITMQ_HOST)
+        credentials = pika.PlainCredentials('guest', 'guest')
+        connection_parameters = pika.ConnectionParameters(RABBITMQ_HOST, credentials=credentials)
         connection = pika.BlockingConnection(connection_parameters)
         channel = connection.channel()
 
@@ -166,6 +146,7 @@ if __name__ == '__main__':
     time.sleep(3)
 
     # Permitir especificar el número de mensajes desde la línea de comandos
+    n_msgs = 100 # Valor por defecto
     if len(sys.argv) > 1:
         try:
             n_msgs = int(sys.argv[1])
@@ -175,7 +156,7 @@ if __name__ == '__main__':
     modelo_seleccionado = seleccionar_modelo()
     #print(f"[-] Archivo de modelo seleccionado: {modelo_seleccionado}")
     if modelo_seleccionado:
+        print(f"[-] Modelo seleccionado: {modelo_seleccionado.get('model_name', 'Nombre no especificado en JSON')}")
         iniciar_productor(n_msgs, modelo_seleccionado)
     else:
         print("No se seleccionó ningún modelo. Saliendo.")
-    #iniciar_productor(n_msgs)
